@@ -14,12 +14,6 @@ private:
 public:
     Node(T val, Node *prev, Node *next);
     Node(T val);
-    // T getValue() const;
-    // void setValue(T val);
-    // Node* getPrev() const;
-    // void setPrev(Node* prevNode);
-    // Node* getNext() const;
-    // void setNext(Node* nextNode);
 };
 
 template<typename T>
@@ -45,13 +39,13 @@ private:
     int count;
 public:
     DLinkedList();
-    ~DLinkedList(){
-        clear();
-    }
+    DLinkedList(const DLinkedList<T> &other);
+    ~DLinkedList();
 
     void push_back(T value);
     void push_front(T value);
     void insert(int index, T value);
+    string toString(int index) const;
     void remove(int index);
     T &get(int index) const;
     int length() const;
