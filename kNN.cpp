@@ -4,6 +4,44 @@
  * */
 
 ////////////////////////////////////////////////////////////////
+//                        Class Point                         //
+////////////////////////////////////////////////////////////////
+
+Point::Point(const DLinkedList<int> &features) : features(features) {}
+
+// Hiện thực phương thức getFeature
+int Point::getFeature(int dimension) const
+{
+    if (dimension < 0 || dimension >= features.length())
+    {
+        throw out_of_range("Dimension out of range");
+    }
+    return features.get(dimension);
+}
+
+// Hiện thực phương thức distanceTo
+double Point::distanceTo(const Point &other) const
+{
+    if (features.length() != other.features.length())
+    {
+        throw invalid_argument("Points must have the same number of dimensions");
+    }
+    double sumOfSquares = 0.0;
+    for (int i = 0; i < features.length(); ++i)
+    {
+        int diff = features.get(i) - other.features.get(i);
+        sumOfSquares += diff * diff;
+    }
+    return sqrt(sumOfSquares);
+}
+
+// Hiện thực phương thức getDimensions
+int Point::getDimensions() const
+{
+    return features.length();
+}
+
+////////////////////////////////////////////////////////////////
 //                        Class Node                          //
 ////////////////////////////////////////////////////////////////
 
@@ -237,6 +275,31 @@ void DLinkedList<T>::reverse(){
     }
 }
 
+template <typename T>
+void DLinkedList<T>::sort()
+{
+    bool swapped;
+    do
+    {
+        swapped = false;
+        Node<T> *current = head;
+        while (current != nullptr && current->next != nullptr)
+        {
+            if (current->value > current->next->value)
+            {
+                // Hoán đổi giá trị
+                T temp = current->value;
+                current->value = current->next->value;
+                current->next->value = temp;
+
+                swapped = true;
+            }
+            current = current->next;
+        }
+    } while (swapped);
+}
+
+
 
 ////////////////////////////////////////////////////////////////
 //                      Class Dataset                         //
@@ -463,15 +526,55 @@ List<List<int> *> *Dataset::getData() const
 ////////////////////////////////////////////////////////////////
 void kNN::fit(const Dataset &X_train, const Dataset &y_train)
 {
-    this->X_train = X_train;
-    this->y_train = y_train;
+    // Chuyển đổi X_train và y_train thành DLinkedList của Point và int
+    for (int i = 0; i < X_train.getData()->length(); ++i)
+    {
+        DLinkedList<int> *features = dynamic_cast<DLinkedList<int> *>(X_train.getData()->get(i));
+        Point p(*features);
+        points.push_back(p); // Lưu trữ các điểm dữ liệu
+
+        int label = y_train.getData()->get(i)->get(0);
+        labels.push_back(label); // Lưu trữ nhãn tương ứng
+    }
 }
 
-Dataset kNN::predict(const Dataset& X_test){
+Dataset kNN::predict(const Dataset &X_test)
+{
     Dataset y_pred;
-    //tinh toan khoang cach va chon k gan nhat
-    //
-    //
-    //
+
+    for (int i = 0; i < X_test.getData()->length(); ++i)
+    {
+        DLinkedList<int> *testFeatures = dynamic_cast<DLinkedList<int> *>(X_test.getData()->get(i));
+        Point testPoint(*testFeatures);
+        int predictedLabel = predictLabelForPoint(testPoint);
+
+        DLinkedList<int> *predictedRow = new DLinkedList<int>();
+        predictedRow->push_back(predictedLabel);
+        y_pred.getData()->push_back(predictedRow); // Thêm nhãn dự đoán vào tập kết quả
+    }
+
     return y_pred;
+}
+
+int kNN::predictLabelForPoint(const Point &point)
+{
+    // Sử dụng thuật toán để tìm k điểm gần nhất và quyết định nhãn dựa trên đa số
+    // Trả về nhãn dự đoán cho điểm đó
+    // Mã giả, cần phải hiện thực chi tiết
+}
+
+double kNN::score(const Dataset &y_test, const Dataset &y_pred)
+{
+    // So sánh dự đoán với nhãn thực tế để tính độ chính xác
+    int correctPredictions = 0;
+    for (int i = 0; i < y_test.getData()->length(); ++i)
+    {
+        int trueLabel = y_test.getData()->get(i)->get(0);
+        int predictedLabel = y_pred.getData()->get(i)->get(0);
+        if (trueLabel == predictedLabel)
+        {
+            correctPredictions++;
+        }
+    }
+    return static_cast<double>(correctPredictions) / y_test.getData()->length();
 }

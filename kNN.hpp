@@ -4,6 +4,28 @@
  *       in this assignment. The below structures are just some suggestions.
  */
 
+struct LabelCount
+{
+    int label;
+    int count;
+    LabelCount(int l, int c) : label(l), count(c) {}
+};
+
+void updateLabelCounts(DLinkedList<LabelCount> &labelCounts, int label);
+int findMostFrequentLabel(const DLinkedList<LabelCount> &labelCounts);
+
+class Point
+{
+private:
+    DLinkedList<int> features;
+
+public:
+    Point(const DLinkedList<int> &features);
+    int getFeature(int dimension) const;
+    double distanceTo(const Point &other) const;
+    int getDimensions() const;
+};
+
 template <typename T>
 class Node
 {
@@ -52,6 +74,7 @@ public:
     void clear();
     void print() const;
     void reverse();
+    void sort();
 };
 
 
@@ -79,9 +102,15 @@ private:
     int k;
     //You may need to define more
     Dataset X_train, y_train;
+    DLinkedList<Point> points;
+    DLinkedList<int> labels;
+
 public:
     kNN(int k = 5);
     void fit(const Dataset& X_train, const Dataset& y_train);
+    void findKNearestPoints(const Point &point, DLinkedList<Point> &kNearestPoints);
+
+    int predictLabelForPoint(const Point &point);
     Dataset predict(const Dataset& X_test);
     double score(const Dataset& y_test, const Dataset& y_pred);
 };
