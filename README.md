@@ -1,4 +1,4 @@
-##**DSA project SEM232**
+## **DSA project SEM232**
 Implement simple classification algorithm **k-nearest neighbors** **(kNN)** to process and classify data from the given **MNIST** data set.
 
 - The **MNIST** dataset contains a set of images captured from handwritten samples of digits from 0 to 9, with each image having a size of **28x28** pixels.
