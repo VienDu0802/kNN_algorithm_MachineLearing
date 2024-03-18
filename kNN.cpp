@@ -325,17 +325,20 @@ DLinkedList<Point>::~DLinkedList()
 //                      Class Dataset                         //
 ////////////////////////////////////////////////////////////////
 
-Dataset::Dataset()
-{
-    data = new DLinkedList<List<int> *>();
-}
+Dataset::Dataset() : data(new DLinkedList<List<int> *>()), columnHeaders(new DLinkedList<string>()) {}
 
-Dataset::~Dataset() {
-    if(data) {
+Dataset::~Dataset()
+{
+    if (data)
+    {
         data->clear();
         delete data;
-        data = nullptr;
-    } 
+    }
+    if (columnHeaders)
+    {
+        columnHeaders->clear();
+        delete columnHeaders;
+    }
 }
 
 Dataset::Dataset(const Dataset &other) : data(new DLinkedList<List<int> *>())
@@ -382,86 +385,94 @@ Dataset &Dataset::operator=(const Dataset &other)
 bool Dataset::loadFromCSV(const char *fileName)
 {
     ifstream file(fileName);
-    if (!file)
-        return false;
-
     string line;
+    bool isFirstRow = true;
+
+    if (!file.is_open())
+    {
+        return false;
+    }
+
     while (getline(file, line))
     {
-        istringstream stream(line);
-        List<int> *row = new DLinkedList<int>();
+        stringstream ss(line);
         string value;
 
-        while (getline(stream, value, ','))
+        if (isFirstRow)
+        {
+            while (getline(ss, value, ','))
+            {
+                columnHeaders->push_back(value); 
+            }
+            isFirstRow = false;
+            continue; 
+        }
+
+        // handle data row
+        List<int> *row = new DLinkedList<int>();
+        while (getline(ss, value, ','))
         {
             try
             {
-                // if valid int ? push to the row
                 int num = stoi(value);
                 row->push_back(num);
             }
-            catch (const std::invalid_argument &e)
+            catch (...)
             {
-                
-                // std::cerr << "Invalid argument found in CSV: " << value << " - skip ???\n";
-                continue;
-            }
-            catch (const std::out_of_range &e)
-            {
-                // value is out of range ?
-                std::cerr << "Out of range value in CSV: " << value << " - skip ???\n";
+                // 
             }
         }
-
-        if (row->length() > 0)
-        {
-            data->push_back(row);
-        }
-        else
-        {
-            delete row;
-        }
+        data->push_back(row);
     }
     return true;
 }
 
 void Dataset::printHead(int nRows, int nCols) const
 {
-    int rowsToPrint = min(nRows, data->length());
-    for (int i = 0; i < rowsToPrint; i++)
+    // header label
+    for (int j = 0; j < nCols && j < columnHeaders->length(); ++j)
     {
-        DLinkedList<int> *row = dynamic_cast<DLinkedList<int> *>(data->get(i));
-        if (row != nullptr)
+        cout << (j > 0 ? " " : "") << columnHeaders->get(j);
+    }
+    cout << endl;
+
+    // print data
+    for (int i = 0; i < nRows && i < data->length(); ++i)
+    {
+        List<int> *row = data->get(i);
+        for (int j = 0; j < nCols && j < row->length(); ++j)
         {
-            int colsToPrint = min(nCols, row->length());
-            for (int j = 0; j < colsToPrint; j++)
-            {
-                if (j > 0)
-                    cout << " ";
-                cout << row->get(j);
-            }
-            cout << endl;
+            cout << (j > 0 ? " " : "") << row->get(j);
         }
+        cout << endl;
     }
 }
 
 void Dataset::printTail(int nRows, int nCols) const
 {
-    int rowsToPrint = min(nRows, data->length());
-    for (int i = data->length() - rowsToPrint; i < data->length(); i++)
+    int totalRows = data->length();
+    int startRow = std::max(0, totalRows - nRows);
+
+    // header label
+    for (int j = std::max(0, columnHeaders->length() - nCols); j < columnHeaders->length(); ++j)
     {
-        DLinkedList<int> *row = dynamic_cast<DLinkedList<int> *>(data->get(i));
-        if (row != nullptr)
+        if (j > std::max(0, columnHeaders->length() - nCols))
+            std::cout << " ";
+        std::cout << columnHeaders->get(j);
+    }
+    std::cout << std::endl;
+
+    for (int i = startRow; i < totalRows; ++i)
+    {
+        List<int> *row = data->get(i);
+        for (int j = std::max(0, row->length() - nCols); j < row->length(); ++j)
         {
-            int colsToPrint = min(nCols, row->length());
-            for (int j = 0; j < colsToPrint; j++)
-            {
-                if (j > 0)
-                    cout << " ";
-                cout << row->get(j);
-            }
-            cout << endl;
+            if (j > std::max(0, row->length() - nCols))
+                std::cout << " ";
+            std::cout << row->get(j);
         }
+        if (i < totalRows - 1)
+            std::cout << std::endl;
     }
 }
 
@@ -575,10 +586,10 @@ void kNN::fit(const Dataset &X_train, const Dataset &y_train)
     {
         DLinkedList<int> *features = dynamic_cast<DLinkedList<int> *>(X_train.getData()->get(i));
         Point p(*features);
-        points.push_back(p); // Lưu trữ các điểm dữ liệu
+        points.push_back(p); 
 
         int label = y_train.getData()->get(i)->get(0);
-        labels.push_back(label); // Lưu trữ nhãn tương ứng
+        labels.push_back(label);
     }
 }
 
@@ -594,7 +605,7 @@ Dataset kNN::predict(const Dataset &X_test)
 
         DLinkedList<int> *predictedRow = new DLinkedList<int>();
         predictedRow->push_back(predictedLabel);
-        y_pred.getData()->push_back(predictedRow); // Thêm nhãn dự đoán vào tập kết quả
+        y_pred.getData()->push_back(predictedRow);
     }
 
     return y_pred;
@@ -604,7 +615,6 @@ int kNN::predictLabelForPoint(const Point &point)
 {
     DLinkedList<DistanceLabelPair> distanceLabelPairs;
 
-    // Tính toán khoảng cách và thêm vào danh sách
     for (int i = 0; i < points.length(); i++)
     {
         double dist = point.distanceTo(points.get(i));
@@ -655,12 +665,11 @@ double kNN::score(const Dataset &y_test, const Dataset &y_pred)
 //////////////////////////////////////////
 void train_test_split(Dataset &X, Dataset &y, double test_size, Dataset &X_train, Dataset &X_test, Dataset &y_train, Dataset &y_test)
 {
-    // Xác định số lượng mẫu dữ liệu
     int totalRows = X.getData()->length();
-    int testRows = static_cast<int>(totalRows * test_size);
+
+    int testRows = static_cast<int>(ceil(totalRows * test_size));
     int trainRows = totalRows - testRows;
 
-    // Chia dữ liệu X và y thành tập huấn luyện và tập kiểm thử
     X_train = X.extract(0, trainRows - 1);
     X_test = X.extract(trainRows, totalRows - 1);
     y_train = y.extract(0, trainRows - 1);
