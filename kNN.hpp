@@ -106,7 +106,7 @@ private:
 public:
     kNN(int k = 5);
     void fit(const Dataset& X_train, const Dataset& y_train);
-    void findKNearestPoints(const Point &point, DLinkedList<Point> &kNearestPoints);
+    // void findKNearestPoints(const Point &point, DLinkedList<Point> &kNearestPoints);
 
     int predictLabelForPoint(const Point &point);
     Dataset predict(const Dataset& X_test);

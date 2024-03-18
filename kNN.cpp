@@ -345,11 +345,10 @@ Dataset::Dataset(const Dataset &other) : data(new DLinkedList<List<int> *>())
 {
     for (int i = 0; i < other.data->length(); ++i)
     {
-        // Cần đảm bảo rằng other.data->get(i) trả về một DLinkedList<int>, không phải List<int>.
         auto *otherRow = dynamic_cast<DLinkedList<int> *>(other.data->get(i));
         if (otherRow)
         {
-            List<int> *newRow = new DLinkedList<int>(*otherRow); // Sử dụng Copy Constructor của DLinkedList
+            List<int> *newRow = new DLinkedList<int>(*otherRow); //Copy Constructor of DLinkedList
             data->push_back(newRow);
         }
     }
@@ -382,44 +381,36 @@ Dataset &Dataset::operator=(const Dataset &other)
     return *this;
 }
 
-bool Dataset::loadFromCSV(const char *fileName)
-{
+bool Dataset::loadFromCSV(const char *fileName) {
     ifstream file(fileName);
     string line;
     bool isFirstRow = true;
 
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         return false;
     }
 
-    while (getline(file, line))
-    {
+    while (getline(file, line)) {
         stringstream ss(line);
         string value;
 
-        if (isFirstRow)
-        {
-            while (getline(ss, value, ','))
-            {
-                columnHeaders->push_back(value); 
+        if (isFirstRow) {
+            //
+            while (getline(ss, value, ',')) {
+                columnHeaders->push_back(value);
             }
             isFirstRow = false;
             continue; 
         }
 
-        // handle data row
+        //handel data
         List<int> *row = new DLinkedList<int>();
-        while (getline(ss, value, ','))
-        {
-            try
-            {
+        while (getline(ss, value, ',')) {
+            try {
                 int num = stoi(value);
                 row->push_back(num);
-            }
-            catch (...)
-            {
-                // 
+            } catch (...) {
+                //
             }
         }
         data->push_back(row);
@@ -427,24 +418,34 @@ bool Dataset::loadFromCSV(const char *fileName)
     return true;
 }
 
+
 void Dataset::printHead(int nRows, int nCols) const
 {
+    if (nRows < 0 || nCols < 0)
+        return;
+
     // header label
-    for (int j = 0; j < nCols && j < columnHeaders->length(); ++j)
+    for (int i = 0; i < columnHeaders->length() && i < nCols; ++i)
     {
-        cout << (j > 0 ? " " : "") << columnHeaders->get(j);
+        if (i > 0)
+            std::cout << " ";
+        std::cout << columnHeaders->get(i);
     }
-    cout << endl;
+    std::cout << std::endl; 
 
     // print data
-    for (int i = 0; i < nRows && i < data->length(); ++i)
+    int rowsToPrint = std::min(nRows, data->length());
+    for (int i = 0; i < rowsToPrint; ++i)
     {
         List<int> *row = data->get(i);
-        for (int j = 0; j < nCols && j < row->length(); ++j)
+        for (int j = 0; j < row->length() && j < nCols; ++j)
         {
-            cout << (j > 0 ? " " : "") << row->get(j);
+            if (j > 0)
+                std::cout << " "; 
+            std::cout << row->get(j);
         }
-        cout << endl;
+        if (i < rowsToPrint - 1)
+            std::cout << std::endl;
     }
 }
 
@@ -586,10 +587,10 @@ void kNN::fit(const Dataset &X_train, const Dataset &y_train)
     {
         DLinkedList<int> *features = dynamic_cast<DLinkedList<int> *>(X_train.getData()->get(i));
         Point p(*features);
-        points.push_back(p); 
+        points.push_back(p); // Lưu trữ các điểm dữ liệu
 
         int label = y_train.getData()->get(i)->get(0);
-        labels.push_back(label);
+        labels.push_back(label); // Lưu trữ nhãn tương ứng
     }
 }
 
@@ -605,7 +606,7 @@ Dataset kNN::predict(const Dataset &X_test)
 
         DLinkedList<int> *predictedRow = new DLinkedList<int>();
         predictedRow->push_back(predictedLabel);
-        y_pred.getData()->push_back(predictedRow);
+        y_pred.getData()->push_back(predictedRow); // Thêm nhãn dự đoán vào tập kết quả
     }
 
     return y_pred;
@@ -615,6 +616,7 @@ int kNN::predictLabelForPoint(const Point &point)
 {
     DLinkedList<DistanceLabelPair> distanceLabelPairs;
 
+    // Tính toán khoảng cách và thêm vào danh sách
     for (int i = 0; i < points.length(); i++)
     {
         double dist = point.distanceTo(points.get(i));
