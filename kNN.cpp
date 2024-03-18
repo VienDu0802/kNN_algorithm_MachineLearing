@@ -379,29 +379,6 @@ Dataset &Dataset::operator=(const Dataset &other)
     return *this;
 }
 
-// bool Dataset::loadFromCSV(const char *fileName)
-// {
-//     ifstream file(fileName);
-//     if (!file)
-//         return false;
-
-//     string line;
-//     while (getline(file, line))
-//     {
-//         istringstream stream(line);
-//         List<int> *row = new DLinkedList<int>();
-//         string value;
-
-//         while (getline(stream, value, ','))
-//         {
-//             row->push_back(stoi(value));
-//         }
-
-//         data->push_back(row);
-//     }
-//     return true;
-// }
-
 bool Dataset::loadFromCSV(const char *fileName)
 {
     ifstream file(fileName);
@@ -419,18 +396,19 @@ bool Dataset::loadFromCSV(const char *fileName)
         {
             try
             {
-                // Chỉ thêm vào row nếu giá trị là một số nguyên hợp lệ.
+                // if valid int ? push to the row
                 int num = stoi(value);
                 row->push_back(num);
             }
             catch (const std::invalid_argument &e)
             {
                 
-                std::cerr << "Invalid argument found in CSV: " << value << " - skip ???\n";
+                // std::cerr << "Invalid argument found in CSV: " << value << " - skip ???\n";
+                continue;
             }
             catch (const std::out_of_range &e)
             {
-                // Nếu số quá lớn và không thể chuyển đổi, xử lý tại đây.
+                // value is out of range ?
                 std::cerr << "Out of range value in CSV: " << value << " - skip ???\n";
             }
         }
