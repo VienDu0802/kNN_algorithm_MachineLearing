@@ -2,6 +2,23 @@
 
 /* TODO: You can implement methods, functions that support your data structures here.
  * */
+std::ostream &operator<<(std::ostream &os, const DistanceLabelPair &dlp)
+{
+    return os << "Distance: " << dlp.distance << ", Label: " << dlp.label;
+}
+
+std::ostream &operator<<(std::ostream &os, const Point &point)
+{
+    os << "Point(";
+    for (int i = 0; i < point.getDimensions(); ++i)
+    {
+        if (i > 0)
+            os << ", ";
+        os << point.getFeature(i);
+    }
+    os << ")";
+    return os;
+}
 
 ////////////////////////////////////////////////////////////////
 //                        Class Point                         //
@@ -224,6 +241,11 @@ T &DLinkedList<T>::get(int index) const
     return curr->value;
 }
 
+template<typename T>
+int DLinkedList<T>::size(){
+    return count;
+}
+
 template <typename T>
 int DLinkedList<T>::length() const {
     return count;
@@ -242,21 +264,16 @@ void DLinkedList<T>::clear(){
 }
 
 template <typename T>
-void DLinkedList<T>::print() const {
+void DLinkedList<T>::print() const
+{
     Node<T> *curr = head;
-    bool isFisrt = true;
-    while(curr!=nullptr){
-        if(!isFisrt){
-            cout<<" ";
-        }else{
-            isFisrt = false;
-        }
-        cout << curr->value;
+    while (curr != nullptr)
+    {
+        cout << curr->value << " ";
         curr = curr->next;
     }
-    // cout << endl;
+    cout << endl;
 }
-
 
 template <typename T>
 void DLinkedList<T>::reverse(){
@@ -278,20 +295,19 @@ void DLinkedList<T>::reverse(){
 template <typename T>
 void DLinkedList<T>::sort()
 {
+    if (head == nullptr || head->next == nullptr)
+        return;
+
     bool swapped;
     do
     {
         swapped = false;
         Node<T> *current = head;
-        while (current != nullptr && current->next != nullptr)
+        while (current->next != nullptr)
         {
-            if (current->value > current->next->value)
+            if (current->value.distance > current->next->value.distance)
             {
-                // Hoán đổi giá trị
-                T temp = current->value;
-                current->value = current->next->value;
-                current->next->value = temp;
-
+                std::swap(current->value, current->next->value);
                 swapped = true;
             }
             current = current->next;
@@ -299,7 +315,11 @@ void DLinkedList<T>::sort()
     } while (swapped);
 }
 
-
+template <>
+DLinkedList<Point>::~DLinkedList()
+{
+    clear();
+}
 
 ////////////////////////////////////////////////////////////////
 //                      Class Dataset                         //
@@ -359,6 +379,29 @@ Dataset &Dataset::operator=(const Dataset &other)
     return *this;
 }
 
+// bool Dataset::loadFromCSV(const char *fileName)
+// {
+//     ifstream file(fileName);
+//     if (!file)
+//         return false;
+
+//     string line;
+//     while (getline(file, line))
+//     {
+//         istringstream stream(line);
+//         List<int> *row = new DLinkedList<int>();
+//         string value;
+
+//         while (getline(stream, value, ','))
+//         {
+//             row->push_back(stoi(value));
+//         }
+
+//         data->push_back(row);
+//     }
+//     return true;
+// }
+
 bool Dataset::loadFromCSV(const char *fileName)
 {
     ifstream file(fileName);
@@ -374,10 +417,32 @@ bool Dataset::loadFromCSV(const char *fileName)
 
         while (getline(stream, value, ','))
         {
-            row->push_back(stoi(value));
+            try
+            {
+                // Chỉ thêm vào row nếu giá trị là một số nguyên hợp lệ.
+                int num = stoi(value);
+                row->push_back(num);
+            }
+            catch (const std::invalid_argument &e)
+            {
+                
+                std::cerr << "Invalid argument found in CSV: " << value << " - skip ???\n";
+            }
+            catch (const std::out_of_range &e)
+            {
+                // Nếu số quá lớn và không thể chuyển đổi, xử lý tại đây.
+                std::cerr << "Out of range value in CSV: " << value << " - skip ???\n";
+            }
         }
 
-        data->push_back(row);
+        if (row->length() > 0)
+        {
+            data->push_back(row);
+        }
+        else
+        {
+            delete row;
+        }
     }
     return true;
 }
@@ -502,7 +567,7 @@ Dataset Dataset::extract(int startRow, int endRow, int startCol, int endCol) con
 
     for (int i = startRow; i <= endRow && i < data->length(); i++)
     {
-        DLinkedList<int> *currentRow = dynamic_cast<DLinkedList<int> *>(data->get(i));
+        DLinkedList<int>* currentRow = static_cast<DLinkedList<int>*>(data->get(i));
         DLinkedList<int> *newRow = new DLinkedList<int>();
 
         for (int j = startCol; j <= endCol && j < currentRow->length(); j++)
@@ -524,6 +589,7 @@ List<List<int> *> *Dataset::getData() const
 ////////////////////////////////////////////////////////////////
 //                        Class kNN                           //
 ////////////////////////////////////////////////////////////////
+kNN::kNN(int k) : k(k){}
 void kNN::fit(const Dataset &X_train, const Dataset &y_train)
 {
     // Chuyển đổi X_train và y_train thành DLinkedList của Point và int
@@ -558,14 +624,42 @@ Dataset kNN::predict(const Dataset &X_test)
 
 int kNN::predictLabelForPoint(const Point &point)
 {
-    // Sử dụng thuật toán để tìm k điểm gần nhất và quyết định nhãn dựa trên đa số
-    // Trả về nhãn dự đoán cho điểm đó
-    // Mã giả, cần phải hiện thực chi tiết
+    DLinkedList<DistanceLabelPair> distanceLabelPairs;
+
+    // Tính toán khoảng cách và thêm vào danh sách
+    for (int i = 0; i < points.length(); i++)
+    {
+        double dist = point.distanceTo(points.get(i));
+        int label = labels.get(i);
+        distanceLabelPairs.push_back(DistanceLabelPair(dist, label));
+    }
+
+    // re-arrange by distance 
+    distanceLabelPairs.sort();
+
+    int labelCounts[10] = {0}; // suppose has 10 diff labels
+    for (int i = 0; i < k && i < distanceLabelPairs.length(); i++)
+    {
+        int lbl = distanceLabelPairs.get(i).label;
+        labelCounts[lbl]++;
+    }
+
+    int maxCount = 0, mostFrequentLabel = -1;
+    for (int i = 0; i < 10; i++)
+    {
+        if (labelCounts[i] > maxCount)
+        {
+            maxCount = labelCounts[i];
+            mostFrequentLabel = i;
+        }
+    }
+
+    return mostFrequentLabel;
 }
 
 double kNN::score(const Dataset &y_test, const Dataset &y_pred)
 {
-    // So sánh dự đoán với nhãn thực tế để tính độ chính xác
+    // So sanh du doan voi thuc te de tinh do chinh xac........
     int correctPredictions = 0;
     for (int i = 0; i < y_test.getData()->length(); ++i)
     {
@@ -577,4 +671,20 @@ double kNN::score(const Dataset &y_test, const Dataset &y_pred)
         }
     }
     return static_cast<double>(correctPredictions) / y_test.getData()->length();
+}
+
+//////////////////////////////////////////
+//////////////////////////////////////////
+void train_test_split(Dataset &X, Dataset &y, double test_size, Dataset &X_train, Dataset &X_test, Dataset &y_train, Dataset &y_test)
+{
+    // Xác định số lượng mẫu dữ liệu
+    int totalRows = X.getData()->length();
+    int testRows = static_cast<int>(totalRows * test_size);
+    int trainRows = totalRows - testRows;
+
+    // Chia dữ liệu X và y thành tập huấn luyện và tập kiểm thử
+    X_train = X.extract(0, trainRows - 1);
+    X_test = X.extract(trainRows, totalRows - 1);
+    y_train = y.extract(0, trainRows - 1);
+    y_test = y.extract(trainRows, totalRows - 1);
 }

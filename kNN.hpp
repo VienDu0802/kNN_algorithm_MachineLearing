@@ -4,6 +4,13 @@
  *       in this assignment. The below structures are just some suggestions.
  */
 
+struct DistanceLabelPair
+{
+    double distance;
+    int label;
+    DistanceLabelPair(double dist, int lbl) : distance(dist), label(lbl) {}
+};
+
 struct LabelCount
 {
     int label;
@@ -11,33 +18,11 @@ struct LabelCount
     LabelCount(int l, int c) : label(l), count(c) {}
 };
 
-void updateLabelCounts(DLinkedList<LabelCount> &labelCounts, int label);
-int findMostFrequentLabel(const DLinkedList<LabelCount> &labelCounts);
-
-class Point
-{
-private:
-    DLinkedList<int> features;
-
-public:
-    Point(const DLinkedList<int> &features);
-    int getFeature(int dimension) const;
-    double distanceTo(const Point &other) const;
-    int getDimensions() const;
-};
+// void updateLabelCounts(DLinkedList<LabelCount> &labelCounts, int label);
+// int findMostFrequentLabel(const DLinkedList<LabelCount> &labelCounts);
 
 template <typename T>
-class Node
-{
-private:
-    T value;
-    Node *prev;
-    Node *next;
-public:
-    Node(T val, Node *prev, Node *next);
-    Node(T val);
-};
-
+class Node;
 template<typename T>
 class List {
 public:
@@ -70,6 +55,7 @@ public:
     string toString(int index) const;
     void remove(int index);
     T &get(int index) const;
+    int size();
     int length() const;
     void clear();
     void print() const;
@@ -77,7 +63,17 @@ public:
     void sort();
 };
 
+class Point
+{
+private:
+    DLinkedList<int> features;
 
+public:
+    Point(const DLinkedList<int> &features);
+    int getFeature(int dimension) const;
+    double distanceTo(const Point &other) const;
+    int getDimensions() const;
+};
 class Dataset {
 private:
     List<List<int>*>* data;
@@ -92,7 +88,7 @@ public:
     void printTail(int nRows = 5, int nCols = 5) const;
     void getShape(int& nRows, int& nCols) const;
     void columns() const;
-    bool drop(int axis = 0, int index = 0, std::string columns = "");
+    bool drop(int axis = 0, int index = 0, ststring columns = "");
     Dataset extract(int startRow = 0, int endRow = -1, int startCol = 0, int endCol = -1) const;
     List<List<int>*>* getData() const;
 };
@@ -119,3 +115,18 @@ void train_test_split(Dataset& X, Dataset& y, double test_size,
                         Dataset& X_train, Dataset& X_test, Dataset& y_train, Dataset& y_test);
 
 // Please add more or modify as needed
+
+template <typename T>
+class Node
+{
+private:
+    T value;
+    Node *prev;
+    Node *next;
+
+public:
+    Node(T val, Node *prev, Node *next);
+    Node(T val);
+
+    friend class DLinkedList<T>;
+};
