@@ -128,7 +128,7 @@ void DLinkedList<T>::insert(int index, T value)
 {
     if (index < 0 || index > count)
     {
-        throw out_of_range("Invalid index");
+        return;
     }
     else if (index == 0)
     {
@@ -178,7 +178,7 @@ void DLinkedList<T>::remove(int index)
 {
     if (index < 0 || index >= count)
     {
-        throw out_of_range("Invalid index");
+        return;
     }
 
     Node<T> *curr = head;
@@ -403,7 +403,7 @@ bool Dataset::loadFromCSV(const char *fileName) {
             continue; 
         }
 
-        //handel data
+        //handle data
         List<int> *row = new DLinkedList<int>();
         while (getline(ss, value, ',')) {
             try {
@@ -425,55 +425,55 @@ void Dataset::printHead(int nRows, int nCols) const
         return;
 
     // header label
-    for (int i = 0; i < columnHeaders->length() && i < nCols; ++i)
+    for (int i = 0; i < columnHeaders->length() && i < nCols; i++)
     {
         if (i > 0)
-            std::cout << " ";
-        std::cout << columnHeaders->get(i);
+            cout << " ";
+        cout << columnHeaders->get(i);
     }
-    std::cout << std::endl; 
+    cout << endl; 
 
     // print data
     int rowsToPrint = std::min(nRows, data->length());
-    for (int i = 0; i < rowsToPrint; ++i)
+    for (int i = 0; i < rowsToPrint; i++)
     {
         List<int> *row = data->get(i);
-        for (int j = 0; j < row->length() && j < nCols; ++j)
+        for (int j = 0; j < row->length() && j < nCols; j++)
         {
             if (j > 0)
-                std::cout << " "; 
-            std::cout << row->get(j);
+                cout << " "; 
+            cout << row->get(j);
         }
         if (i < rowsToPrint - 1)
-            std::cout << std::endl;
+            cout << endl;
     }
 }
 
 void Dataset::printTail(int nRows, int nCols) const
 {
     int totalRows = data->length();
-    int startRow = std::max(0, totalRows - nRows);
+    int startRow = max(0, totalRows - nRows);
 
     // header label
-    for (int j = std::max(0, columnHeaders->length() - nCols); j < columnHeaders->length(); ++j)
+    for (int j = max(0, columnHeaders->length() - nCols); j < columnHeaders->length(); ++j)
     {
-        if (j > std::max(0, columnHeaders->length() - nCols))
-            std::cout << " ";
-        std::cout << columnHeaders->get(j);
+        if (j > max(0, columnHeaders->length() - nCols))
+            cout << " ";
+        cout << columnHeaders->get(j);
     }
-    std::cout << std::endl;
+    cout << endl;
 
     for (int i = startRow; i < totalRows; ++i)
     {
         List<int> *row = data->get(i);
-        for (int j = std::max(0, row->length() - nCols); j < row->length(); ++j)
+        for (int j = max(0, row->length() - nCols); j < row->length(); ++j)
         {
-            if (j > std::max(0, row->length() - nCols))
-                std::cout << " ";
-            std::cout << row->get(j);
+            if (j > max(0, row->length() - nCols))
+                cout << " ";
+            cout << row->get(j);
         }
         if (i < totalRows - 1)
-            std::cout << std::endl;
+            cout << endl;
     }
 }
 
@@ -501,13 +501,24 @@ void Dataset::columns() const
     }
 }
 
+void Dataset::addColumnHeader(string& headerName)
+{
+    this->columnHeaders->push_back(headerName);
+}
+
+DLinkedList<string> *Dataset::getColumnHeaders() const
+{
+    return columnHeaders;
+}
+
 bool Dataset::drop(int axis, int index, std::string columnName)
 {
     if (axis == 0)
     {
         if (index < 0 || index >= data->length())
+        {
             return false;
-
+        }
         List<int> *row = data->get(index);
         delete row;
         data->remove(index);
@@ -516,12 +527,9 @@ bool Dataset::drop(int axis, int index, std::string columnName)
     else if (axis == 1)
     {
         int colIndex = -1;
-        DLinkedList<int> *headerRow = dynamic_cast<DLinkedList<int> *>(data->get(0));
-        for (int i = 0; i < headerRow->length(); ++i)
+        for (int i = 0; i < columnHeaders->length(); ++i)
         {
-            std::stringstream ss;
-            ss << headerRow->get(i);
-            if (ss.str() == columnName)
+            if (columnHeaders->get(i) == columnName)
             {
                 colIndex = i;
                 break;
@@ -529,18 +537,59 @@ bool Dataset::drop(int axis, int index, std::string columnName)
         }
 
         if (colIndex == -1)
+        {
             return false;
+        }
 
-        for (int i = 1; i < data->length(); ++i)
+        for (int i = 0; i < data->length(); ++i)
         {
             DLinkedList<int> *row = dynamic_cast<DLinkedList<int> *>(data->get(i));
-            row->remove(colIndex);
+            if (row->length() > colIndex)
+            {
+                row->remove(colIndex);
+            }
         }
-        headerRow->remove(colIndex);
+
+        columnHeaders->remove(colIndex);
         return true;
     }
     return false;
 }
+
+//ver 1.0
+// Dataset Dataset::extract(int startRow, int endRow, int startCol, int endCol) const
+// {
+//     Dataset result;
+
+//     for (int i = 0; i < this->columnHeaders->length(); ++i)
+//     {
+//         result.columnHeaders->push_back(this->columnHeaders->get(i));
+//     }
+
+//     if (endRow == -1)
+//     {
+//         endRow = data->length() - 1;
+//     }
+//     if (endCol == -1 && data->length() > 0)
+//     {
+//         endCol = data->get(0)->length() - 1;
+//     }
+
+//     for (int i = startRow; i <= endRow && i < data->length(); i++)
+//     {
+//         DLinkedList<int>* currentRow = static_cast<DLinkedList<int>*>(data->get(i));
+//         DLinkedList<int> *newRow = new DLinkedList<int>();
+
+//         for (int j = startCol; j <= endCol && j < currentRow->length(); j++)
+//         {
+//             newRow->push_back(currentRow->get(j));
+//         }
+
+//         result.data->push_back(newRow);
+//     }
+
+//     return result;
+// }
 
 Dataset Dataset::extract(int startRow, int endRow, int startCol, int endCol) const
 {
@@ -550,14 +599,14 @@ Dataset Dataset::extract(int startRow, int endRow, int startCol, int endCol) con
     {
         endRow = data->length() - 1;
     }
-    if (endCol == -1 && data->length() > 0)
+    if (endCol == -1)
     {
         endCol = data->get(0)->length() - 1;
     }
 
     for (int i = startRow; i <= endRow && i < data->length(); i++)
     {
-        DLinkedList<int>* currentRow = static_cast<DLinkedList<int>*>(data->get(i));
+        DLinkedList<int> *currentRow = static_cast<DLinkedList<int> *>(data->get(i));
         DLinkedList<int> *newRow = new DLinkedList<int>();
 
         for (int j = startCol; j <= endCol && j < currentRow->length(); j++)
@@ -567,7 +616,11 @@ Dataset Dataset::extract(int startRow, int endRow, int startCol, int endCol) con
 
         result.data->push_back(newRow);
     }
-
+    // Chỉ thêm tiêu đề cột khi trích xuất cột nhãn.
+    if (startCol == 0 && endCol == 0)
+    {
+        result.columnHeaders->push_back("label");
+    }
     return result;
 }
 
@@ -582,22 +635,22 @@ List<List<int> *> *Dataset::getData() const
 kNN::kNN(int k) : k(k){}
 void kNN::fit(const Dataset &X_train, const Dataset &y_train)
 {
-    // Chuyển đổi X_train và y_train thành DLinkedList của Point và int
+    // chuyen X_train va y_train ve DLinkedList dang string va int
     for (int i = 0; i < X_train.getData()->length(); ++i)
     {
         DLinkedList<int> *features = dynamic_cast<DLinkedList<int> *>(X_train.getData()->get(i));
         Point p(*features);
-        points.push_back(p); // Lưu trữ các điểm dữ liệu
+        points.push_back(p); // luu tru cac diem data
 
         int label = y_train.getData()->get(i)->get(0);
-        labels.push_back(label); // Lưu trữ nhãn tương ứng
+        labels.push_back(label); // luu nhan tuong ung
     }
 }
 
 Dataset kNN::predict(const Dataset &X_test)
 {
     Dataset y_pred;
-
+    
     for (int i = 0; i < X_test.getData()->length(); ++i)
     {
         DLinkedList<int> *testFeatures = dynamic_cast<DLinkedList<int> *>(X_test.getData()->get(i));
@@ -606,17 +659,19 @@ Dataset kNN::predict(const Dataset &X_test)
 
         DLinkedList<int> *predictedRow = new DLinkedList<int>();
         predictedRow->push_back(predictedLabel);
-        y_pred.getData()->push_back(predictedRow); // Thêm nhãn dự đoán vào tập kết quả
+        y_pred.getData()->push_back(predictedRow);
     }
 
+    y_pred.getColumnHeaders()->push_back("label");
     return y_pred;
 }
+
 
 int kNN::predictLabelForPoint(const Point &point)
 {
     DLinkedList<DistanceLabelPair> distanceLabelPairs;
 
-    // Tính toán khoảng cách và thêm vào danh sách
+    // cal distance and add to list
     for (int i = 0; i < points.length(); i++)
     {
         double dist = point.distanceTo(points.get(i));
@@ -676,4 +731,5 @@ void train_test_split(Dataset &X, Dataset &y, double test_size, Dataset &X_train
     X_test = X.extract(trainRows, totalRows - 1);
     y_train = y.extract(0, trainRows - 1);
     y_test = y.extract(trainRows, totalRows - 1);
+    y_test.getColumnHeaders()->push_back("label");
 }
